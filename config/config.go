@@ -8,7 +8,12 @@ import (
 )
 
 type Config struct {
-	Logger *logger.Config `mapstructure:"logger"`
+	Http   Http           `mapstructure:"http" validate:"required"`
+	Logger *logger.Config `mapstructure:"logger" validate:"required"`
+}
+
+type Http struct {
+	Port string `mapstructure:"port" validate:"required"`
 }
 
 func LoadConfig(pathToConfig string) (*Config, error) {
