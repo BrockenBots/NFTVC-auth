@@ -8,7 +8,7 @@ import (
 )
 
 type Config struct {
-	Logger *logger.Config
+	Logger *logger.Config `mapstructure:"logger"`
 }
 
 func LoadConfig(pathToConfig string) (*Config, error) {
@@ -22,7 +22,7 @@ func LoadConfig(pathToConfig string) (*Config, error) {
 	viper.SetConfigFile(pathToConfig)
 
 	if err := viper.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("(ReadInConfig)")
+		return nil, fmt.Errorf("(ReadInConfig) error: %v", err)
 	}
 
 	if err := viper.Unmarshal(cfg); err != nil {
