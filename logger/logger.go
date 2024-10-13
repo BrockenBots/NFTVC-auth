@@ -3,8 +3,8 @@ package logger
 import "github.com/sirupsen/logrus"
 
 type Config struct {
-	LogLevel string
-	DevMode  bool
+	LogLevel string `mapstructure:"level"`
+	DevMode  bool   `mapstructure:"devMode"`
 }
 
 type Logger interface {
