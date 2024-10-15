@@ -1,5 +1,0 @@
-logger: 
-  level: debug
-  devMode: true
-http: 
-  port: :8081
