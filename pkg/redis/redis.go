@@ -9,7 +9,7 @@ import (
 )
 
 type RedisConfig struct {
-	Port string `mapstructure:"port"`
+	URI string `mapstructure:"uri"`
 }
 
 type RedisConnector struct {
@@ -23,7 +23,7 @@ func NewRedisConnector(log logger.Logger, cfg *RedisConfig) *RedisConnector {
 
 func (r *RedisConnector) NewRedisConn(ctx context.Context) (*redis.Client, error) {
 	rsc := redis.NewClient(&redis.Options{
-		Addr: r.cfg.Port,
+		Addr: r.cfg.URI,
 	})
 
 	if err := rsc.Ping(ctx).Err(); err != nil {

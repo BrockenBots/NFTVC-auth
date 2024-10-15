@@ -4,9 +4,9 @@ logger:
 http: 
   port: :8081
 postgres:
-  connectionString: "postgres://user:password@localhost:5432"
+  connectionString: "postgres://user:password@postgres:5432"
   db: nftvc
 redis: 
-  uri: 6379
+  uri: "redis:6379"
 nonce:
   exp: 900s

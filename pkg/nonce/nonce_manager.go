@@ -31,9 +31,9 @@ func NewNonceManager(log logger.Logger, cfg *NonceConfig, nonceRepo repository.N
 
 func (n *nonceManager) GenerateNonce(walletAddress string) (string, error) {
 	uuid, _ := uuid.NewV7()
-	_ = fmt.Sprintf("%x", uuid.Bytes())
+	nonceValue := fmt.Sprintf("%x", uuid.Bytes())
 
-	nonce := model.NewNonce("huy", walletAddress, n.nonceExp)
+	nonce := model.NewNonce(nonceValue, walletAddress, n.nonceExp)
 	if err := n.nonceRepo.AddNonce(nonce); err != nil {
 		return "", err
 	}
