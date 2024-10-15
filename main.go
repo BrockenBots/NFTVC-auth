@@ -1,12 +1,12 @@
 package main
 
 import (
-	"nftvc-auth/config"
-	"nftvc-auth/logger"
+	"nftvc-auth/pkg/config"
+	"nftvc-auth/pkg/logger"
 	"nftvc-auth/server"
 )
 
-const pathToConfig = "config/config.yml"
+const pathToConfig = "pkg/config/config.yml"
 
 func main() {
 	cfg, err := config.LoadConfig(pathToConfig)

@@ -1,0 +1,12 @@
+logger: 
+  level: debug
+  devMode: true
+http: 
+  port: :8081
+postgres:
+  connectionString: "postgres://user:password@postgres:5432"
+  db: nftvc
+redis: 
+  uri: "redis:6379"
+nonce:
+  exp: 900s
