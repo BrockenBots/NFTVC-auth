@@ -1,0 +1,88 @@
+definitions:
+  requests.SignInWithWalletRequest:
+    properties:
+      wallet_pub:
+        type: string
+    required:
+    - wallet_pub
+    type: object
+  requests.VerifySignatureRequest:
+    properties:
+      signature:
+        type: string
+      wallet_pub:
+        type: string
+    required:
+    - signature
+    - wallet_pub
+    type: object
+info:
+  contact: {}
+paths:
+  /api/auth/sign-in:
+    post:
+      consumes:
+      - application/json
+      description: Авторизация пользователя с использованием его Ethereum кошелька
+      parameters:
+      - description: SignInWithWallet Request
+        in: body
+        name: signInWithWallet
+        required: true
+        schema:
+          $ref: '#/definitions/requests.SignInWithWalletRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ID пользователя и nonce
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Ошибка валидации или неправильный запрос
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Авторизация через кошелек
+      tags:
+      - auth
+  /api/auth/verify-signature:
+    post:
+      consumes:
+      - application/json
+      description: Проверка подписи с использованием публичного ключа
+      parameters:
+      - description: VerifySignature Request
+        in: body
+        name: verifySignature
+        required: true
+        schema:
+          $ref: '#/definitions/requests.VerifySignatureRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Подпись успешно проверена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Неверная подпись или неправильный запрос
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Верификация подписи
+      tags:
+      - auth
+swagger: "2.0"

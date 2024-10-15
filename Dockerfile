@@ -9,7 +9,7 @@ ENV APP_PORT=${APP_PORT}
 
 RUN go mod tidy
 
-RUN go build -o main ./cmd/main.go
+RUN go build -o main ./main.go
 
 FROM alpine:latest
 

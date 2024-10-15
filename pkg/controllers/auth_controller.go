@@ -30,6 +30,17 @@ func NewAuthController(log logger.Logger, cfg *config.Config, accountRepo reposi
 	return &AuthController{log: log, cfg: cfg, accountRepo: accountRepo, nonceManager: nonceManager, validate: validator}
 }
 
+// SignInWithWallet godoc
+// @Summary Авторизация через кошелек
+// @Description Авторизация пользователя с использованием его Ethereum кошелька
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Param   signInWithWallet body requests.SignInWithWalletRequest true "SignInWithWallet Request"
+// @Success 200 {object} map[string]string "ID пользователя и nonce"
+// @Failure 400 {object} map[string]string "Ошибка валидации или неправильный запрос"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Router /api/auth/sign-in [post]
 func (a *AuthController) SignInWithWallet(ctx echo.Context) error {
 	a.log.Debugf("(SignInWithWallet)")
 	var req requests.SignInWithWalletRequest
@@ -60,6 +71,16 @@ func (a *AuthController) SignInWithWallet(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, map[string]string{"Id": accountId, "nonce": nonce})
 }
 
+// VerifySignature godoc
+// @Summary Верификация подписи
+// @Description Проверка подписи с использованием публичного ключа
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Param   verifySignature body requests.VerifySignatureRequest true "VerifySignature Request"
+// @Success 200 {object} map[string]string "Подпись успешно проверена"
+// @Failure 400 {object} map[string]string "Неверная подпись или неправильный запрос"
+// @Router /api/auth/verify-signature [post]
 func (a *AuthController) VerifySignature(ctx echo.Context) error {
 	var req requests.VerifySignatureRequest
 	if err := ctx.Bind(&req); err != nil {
