@@ -9,3 +9,7 @@ type MiddlewareManager struct {
 	log logger.Logger
 	cfg *config.Config
 }
+
+func CORS() {
+
+}

@@ -42,30 +42,21 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "ID пользователя и nonce",
+                        "description": "Сгенерированный uuid для проверки подписи (nonce)",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/response.SignInWithWalletResponse"
                         }
                     },
                     "400": {
                         "description": "Ошибка валидации или неправильный запрос",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -99,19 +90,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Подпись успешно проверена",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/response.VerifySignatureResponse"
                         }
                     },
                     "400": {
                         "description": "Неверная подпись или неправильный запрос",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -141,6 +132,33 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "wallet_pub": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.SignInWithWalletResponse": {
+            "type": "object",
+            "properties": {
+                "nonce": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.VerifySignatureResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "refresh_token": {
                     "type": "string"
                 }
             }
