@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 	"nftvc-auth/internal/model"
-	"nftvc-auth/internal/repository"
 	"nftvc-auth/pkg/logger"
 
 	"github.com/jackc/pgx/v5"
 )
 
 type PostgresAccountRepo struct {
-	repository.AccountRepository
+	// repository.AccountRepository
 	log logger.Logger
 	db  *pgx.Conn
 }

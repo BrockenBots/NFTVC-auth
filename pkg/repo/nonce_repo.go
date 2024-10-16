@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 	"nftvc-auth/internal/model"
-	"nftvc-auth/internal/repository"
 	"nftvc-auth/pkg/logger"
 
 	"github.com/redis/go-redis/v9"
 )
 
 type NonceRedisRepo struct {
-	repository.NonceRepository
+	// repository.NonceRepository
 	log logger.Logger
 	db  *redis.Client
 }

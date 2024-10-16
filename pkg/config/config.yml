@@ -8,5 +8,7 @@ postgres:
   db: nftvc
 redis: 
   uri: "redis:6379"
+mongo:
+  uri: mongo://user:password@localhost:27017
 nonce:
   exp: 900s
