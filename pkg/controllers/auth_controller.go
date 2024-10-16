@@ -9,6 +9,7 @@ import (
 	"nftvc-auth/pkg/logger"
 	"nftvc-auth/pkg/nonce"
 	"nftvc-auth/pkg/requests"
+	_ "nftvc-auth/pkg/response"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -37,9 +38,9 @@ func NewAuthController(log logger.Logger, cfg *config.Config, accountRepo reposi
 // @Accept  json
 // @Produce  json
 // @Param   signInWithWallet body requests.SignInWithWalletRequest true "SignInWithWallet Request"
-// @Success 200 {object} map[string]string "ID пользователя и nonce"
-// @Failure 400 {object} map[string]string "Ошибка валидации или неправильный запрос"
-// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Success 200 {object} response.SignInWithWalletResponse "Сгенерированный uuid для проверки подписи (nonce)"
+// @Failure 400 {object} response.ErrorResponse "Ошибка валидации или неправильный запрос"
+// @Failure 500 {object} response.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/auth/sign-in [post]
 func (a *AuthController) SignInWithWallet(ctx echo.Context) error {
 	a.log.Debugf("(SignInWithWallet)")
@@ -68,7 +69,7 @@ func (a *AuthController) SignInWithWallet(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
 	}
 
-	return ctx.JSON(http.StatusOK, map[string]string{"Id": accountId, "nonce": nonce})
+	return ctx.JSON(http.StatusOK, map[string]string{"nonce": nonce})
 }
 
 // VerifySignature godoc
@@ -78,8 +79,9 @@ func (a *AuthController) SignInWithWallet(ctx echo.Context) error {
 // @Accept  json
 // @Produce  json
 // @Param   verifySignature body requests.VerifySignatureRequest true "VerifySignature Request"
-// @Success 200 {object} map[string]string "Подпись успешно проверена"
-// @Failure 400 {object} map[string]string "Неверная подпись или неправильный запрос"
+// @Success 200 {object} response.VerifySignatureResponse "Подпись успешно проверена"
+// @Failure 400 {object} response.ErrorResponse "Неверная подпись или неправильный запрос"
+// @Failure 500 {object} response.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/auth/verify-signature [post]
 func (a *AuthController) VerifySignature(ctx echo.Context) error {
 	var req requests.VerifySignatureRequest

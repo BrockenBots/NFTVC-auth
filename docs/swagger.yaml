@@ -16,6 +16,23 @@ definitions:
     - signature
     - wallet_pub
     type: object
+  response.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  response.SignInWithWalletResponse:
+    properties:
+      nonce:
+        type: string
+    type: object
+  response.VerifySignatureResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
 info:
   contact: {}
 paths:
@@ -35,23 +52,17 @@ paths:
       - application/json
       responses:
         "200":
-          description: ID пользователя и nonce
+          description: Сгенерированный uuid для проверки подписи (nonce)
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/response.SignInWithWalletResponse'
         "400":
           description: Ошибка валидации или неправильный запрос
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/response.ErrorResponse'
         "500":
           description: Внутренняя ошибка сервера
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/response.ErrorResponse'
       summary: Авторизация через кошелек
       tags:
       - auth
@@ -73,15 +84,15 @@ paths:
         "200":
           description: Подпись успешно проверена
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/response.VerifySignatureResponse'
         "400":
           description: Неверная подпись или неправильный запрос
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
       summary: Верификация подписи
       tags:
       - auth

@@ -5,7 +5,6 @@ type SignInWithWalletRequest struct {
 }
 
 type SignOutRequest struct {
-	Id string
 }
 
 type VerifySignatureRequest struct {
