@@ -138,6 +138,9 @@ const docTemplate = `{
         },
         "response.ErrorResponse": {
             "type": "object",
+            "required": [
+                "error"
+            ],
             "properties": {
                 "error": {
                     "type": "string"
@@ -146,6 +149,9 @@ const docTemplate = `{
         },
         "response.SignInWithWalletResponse": {
             "type": "object",
+            "required": [
+                "nonce"
+            ],
             "properties": {
                 "nonce": {
                     "type": "string"
@@ -154,6 +160,10 @@ const docTemplate = `{
         },
         "response.VerifySignatureResponse": {
             "type": "object",
+            "required": [
+                "access_token",
+                "refresh_token"
+            ],
             "properties": {
                 "access_token": {
                     "type": "string"

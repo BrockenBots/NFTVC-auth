@@ -4,11 +4,14 @@ logger:
 http: 
   port: :8081
 postgres:
-  connectionString: "postgres://user:password@postgres:5432"
+  connectionString: "postgres://user:password@localhost:5432"
   db: nftvc
 redis: 
-  uri: "redis:6379"
+  uri: "localhost:6379"
 mongo:
   uri: mongo://user:password@localhost:27017
 nonce:
   exp: 900s
+mongoCollections:
+  accounts: accounts
+  refreshTokens: refreshTokens

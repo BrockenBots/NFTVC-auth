@@ -12,7 +12,7 @@ import (
 func (s *server) runHttpServer() error {
 	corsConfig := middleware.CORSConfig{
 		AllowOrigins: []string{"*"}, // Пока так
-		AllowMethods: []string{echo.GET, echo.POST},
+		AllowMethods: []string{echo.GET, echo.POST, echo.OPTIONS},
 		AllowHeaders: []string{"Content-Type", "Authorization"},
 	}
 

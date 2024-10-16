@@ -32,8 +32,30 @@ func NewJwtManager(log logger.Logger, cfg *JwtConfig) *jwtManager {
 }
 
 func (j *jwtManager) GenerateTokens(accountID string, deviceId string, role string) (string, string, error) {
+	// accessTokenId, _ := uuid.NewV7()
+	// _ = &model.Token{
+	// 	Id:        accessTokenId.String(),
+	// 	DeviceId:  deviceId,
+	// 	AccountId: accountID,
+	// 	TokenType: model.AccessToken,
+	// 	Token:     "",
+	// 	Exp:       j.accessExp,
+	// }
+
+	// refreshTokenId, _ := uuid.NewV7()
+	// _ = &model.Token{
+	// 	Id:        refreshTokenId.String(),
+	// 	DeviceId:  deviceId,
+	// 	AccountId: accountID,
+	// 	TokenType: model.RefreshToken,
+	// 	Token:     "",
+	// 	Exp:       j.accessExp,
+	// }
+
 	return "", "", fmt.Errorf("not impl")
 }
+
+// func generateAccessToken
 
 func (j *jwtManager) ValidateToken(accountId string, deviceId string, token string) error {
 	return fmt.Errorf("not impl")

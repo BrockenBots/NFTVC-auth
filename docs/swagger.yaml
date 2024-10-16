@@ -20,11 +20,15 @@ definitions:
     properties:
       error:
         type: string
+    required:
+    - error
     type: object
   response.SignInWithWalletResponse:
     properties:
       nonce:
         type: string
+    required:
+    - nonce
     type: object
   response.VerifySignatureResponse:
     properties:
@@ -32,6 +36,9 @@ definitions:
         type: string
       refresh_token:
         type: string
+    required:
+    - access_token
+    - refresh_token
     type: object
 info:
   contact: {}

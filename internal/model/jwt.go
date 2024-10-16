@@ -26,6 +26,6 @@ type Token struct {
 type TokenType string
 
 var (
-	accessToken  TokenType = "accessToken"
-	refreshToken TokenType = "refreshToken"
+	AccessToken  TokenType = "accessToken"
+	RefreshToken TokenType = "refreshToken"
 )

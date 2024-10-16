@@ -11,11 +11,17 @@ import (
 )
 
 type Config struct {
-	Http     Http                        `mapstructure:"http" validate:"required"`
-	Logger   *logger.Config              `mapstructure:"logger" validate:"required"`
-	Postgres *postgres.PostgresConfig    `mapstructure:"postgres" validate:"required"`
-	Redis    *redisConnector.RedisConfig `mapstructure:"redis" validate:"required"`
-	Nonce    *nonce.NonceConfig          `mapstructure:"nonce" validate:"required"`
+	Http             Http                        `mapstructure:"http" validate:"required"`
+	Logger           *logger.Config              `mapstructure:"logger" validate:"required"`
+	Postgres         *postgres.PostgresConfig    `mapstructure:"postgres" validate:"required"`
+	Redis            *redisConnector.RedisConfig `mapstructure:"redis" validate:"required"`
+	Nonce            *nonce.NonceConfig          `mapstructure:"nonce" validate:"required"`
+	MongoCollections *MongoCollections           `mapstructure:"mongoCollections" validate:"required"`
+}
+
+type MongoCollections struct {
+	Accounts      string `mapstructure:"accounts" validate:"required"`
+	RefreshTokens string `mapstructure:"refreshTokens" validate:"required"`
 }
 
 type Http struct {

@@ -34,6 +34,7 @@ func (p *PostgresAccountRepo) Update(account *model.Account) error {
 	_, err := p.db.Exec(context.Background(), query, account.WalletPub, account.WalletVerified, account.Role, account.Id)
 	if err != nil {
 		p.log.Debugf("Err by update account: %v", err)
+		return err
 	}
 	return err
 }
@@ -41,14 +42,13 @@ func (p *PostgresAccountRepo) Update(account *model.Account) error {
 func (p *PostgresAccountRepo) GetById(accountId string) (*model.Account, error) {
 	query := `SELECT * FROM accounts WHERE id = $1`
 	row := p.db.QueryRow(context.Background(), query, accountId)
-	var account model.Account
 
+	var account model.Account
 	if err := row.Scan(account.Id, account.WalletPub, account.WalletVerified, account.Role); err != nil {
 		if err == pgx.ErrNoRows {
 			p.log.Debugf("(GetById) Not found")
 			return nil, fmt.Errorf("not found")
 		}
-
 		return nil, err
 	}
 
@@ -60,13 +60,11 @@ func (p *PostgresAccountRepo) GetByWalletAddress(walletAddress string) (*model.A
 	row := p.db.QueryRow(context.Background(), query, walletAddress)
 
 	var account model.Account
-
 	if err := row.Scan(account.Id, account.WalletPub, account.WalletVerified, account.Role); err != nil {
 		if err == pgx.ErrNoRows {
 			p.log.Debugf("(GetById) Not found")
 			return nil, fmt.Errorf("not found")
 		}
-
 		return nil, err
 	}
 

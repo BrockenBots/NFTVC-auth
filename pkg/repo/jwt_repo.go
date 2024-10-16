@@ -9,12 +9,14 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type JwtRepo struct {
 	// repository.JwtRepository
 	log         logger.Logger
 	redisClient *redis.Client
+	mongoClient *mongo.Collection
 }
 
 func (j *JwtRepo) SaveAccessToken(token model.Token) error {
@@ -31,6 +33,10 @@ func (j *JwtRepo) SaveAccessToken(token model.Token) error {
 }
 
 func (j *JwtRepo) SaveRefreshToken(token model.Token) error {
+	// ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+	// defer cancel()
+
+	// if err := j.mongoClient.InsertOne()
 	return nil
 }
 

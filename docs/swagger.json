@@ -126,6 +126,9 @@
         },
         "response.ErrorResponse": {
             "type": "object",
+            "required": [
+                "error"
+            ],
             "properties": {
                 "error": {
                     "type": "string"
@@ -134,6 +137,9 @@
         },
         "response.SignInWithWalletResponse": {
             "type": "object",
+            "required": [
+                "nonce"
+            ],
             "properties": {
                 "nonce": {
                     "type": "string"
@@ -142,6 +148,10 @@
         },
         "response.VerifySignatureResponse": {
             "type": "object",
+            "required": [
+                "access_token",
+                "refresh_token"
+            ],
             "properties": {
                 "access_token": {
                     "type": "string"
