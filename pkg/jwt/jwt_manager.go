@@ -24,6 +24,7 @@ type JwtManager interface {
 	RefreshToken(ctx context.Context, refreshToken string) (newAccessToken string, newRefreshToken string, err error)
 	IsRevokedToken(ctx context.Context, accountId string, deviceId string, accessToken string) bool
 	RevokeTokens(ctx context.Context, accountId string, deviceId string, token string) error
+	ExistAccessToken(ctx context.Context, accountId string, deviceId string) bool
 }
 
 type JwtConfig struct {
@@ -100,7 +101,7 @@ func (j *jwtManager) generateRefreshToken(ctx context.Context, accountId, wallet
 	accountClaims := &model.AccountClaims{
 		Jti:       jti.String(),
 		Iat:       time.Now().Unix(),
-		Exp:       time.Now().Add(j.accessExp).Unix(),
+		Exp:       time.Now().Add(j.refreshExp).Unix(),
 		Sub:       accountId,
 		WalletPub: walletPub,
 		DeviceId:  deviceId,
@@ -247,4 +248,13 @@ func (j *jwtManager) getPrivateKey() (*rsa.PrivateKey, error) {
 
 func (j *jwtManager) IsRevokedToken(ctx context.Context, accountId string, deviceId string, accessToken string) bool {
 	return j.jwtRepo.IsRevokedToken(ctx, accountId, deviceId, accessToken)
+}
+
+func (j *jwtManager) ExistAccessToken(ctx context.Context, accountId string, deviceId string) bool {
+	token, err := j.jwtRepo.GetAccessToken(ctx, accountId, deviceId)
+	if err != nil {
+		return false
+	}
+
+	return token != ""
 }

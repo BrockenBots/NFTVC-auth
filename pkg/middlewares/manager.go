@@ -57,6 +57,10 @@ func (m *MiddlewareManager) AuthMiddleware(next echo.HandlerFunc) echo.HandlerFu
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Token is invalid"})
 		}
 
+		if !m.jwtManager.ExistAccessToken(context.Background(), sub, deviceId) {
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Token is expired"})
+		}
+
 		revoked := m.jwtManager.IsRevokedToken(context.Background(), sub, deviceId, accessToken)
 		if revoked {
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Token in blacklist"})

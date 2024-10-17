@@ -53,18 +53,19 @@ func (a *AuthController) SignInWithWallet(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Validation error: %v", err)})
 	}
 
-	accountUuid, _ := uuid.NewV7()
-	accountId := accountUuid.String()
-	acc, _ := a.accountRepo.GetByWalletAddress(context.Background(), req.WalletPub)
-	if acc != nil {
-		accountId = acc.Id
-	}
-
 	nonce, err := a.nonceManager.GenerateNonce(req.WalletPub)
 	if err != nil {
 		a.log.Error("(SignInWithWallet) [GenerateNonce] err: ", err)
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
 	}
+
+	acc, _ := a.accountRepo.GetByWalletAddress(context.Background(), req.WalletPub)
+	if acc == nil {
+		return ctx.JSON(http.StatusOK, map[string]string{"nonce": nonce})
+	}
+
+	accountUuid, _ := uuid.NewV7()
+	accountId := accountUuid.String()
 
 	account := model.NewAccount(accountId, req.WalletPub, "user")
 	if err := a.accountRepo.Add(context.Background(), account); err != nil {

@@ -11,4 +11,5 @@ type JwtRepository interface {
 	RevokeTokens(ctx context.Context, accountId string, deviceId string, acceptedToken string) error
 	IsRevokedToken(ctx context.Context, accountId string, deviceId string, accessToken string) bool
 	DeleteRefreshToken(ctx context.Context, accountId string, deviceId string) error
+	GetAccessToken(ctx context.Context, accountId string, deviceId string) (string, error)
 }
