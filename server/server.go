@@ -31,15 +31,15 @@ type server struct {
 	echo           *echo.Echo
 	authController *controllers.AuthController
 	mongoClient    *mongo.Client
-	middleware     middlewares.MiddlewareManager
+	middleware     *middlewares.MiddlewareManager
 }
 
 func NewServer(log logger.Logger, cfg *config.Config) *server {
 	return &server{
-		log:        log,
-		cfg:        cfg,
-		echo:       echo.New(),
-		middleware: *middlewares.NewMiddlewareManager(log, cfg),
+		log:  log,
+		cfg:  cfg,
+		echo: echo.New(),
+		// middleware: *middlewares.NewMiddlewareManager(log, cfg),
 	}
 }
 
@@ -73,7 +73,7 @@ func (s *server) Run() error {
 	jwtManager := jwt.NewJwtManager(s.log, s.cfg, jwtRepo)
 	nonceManager := nonce.NewNonceManager(s.log, s.cfg.Nonce, nonceRepo)
 	validate := s.setupValidator()
-
+	s.middleware = middlewares.NewMiddlewareManager(s.log, s.cfg, jwtManager)
 	s.authController = controllers.NewAuthController(s.log, s.cfg, accountRepo, nonceManager, validate, jwtManager)
 
 	go func() {
@@ -118,7 +118,7 @@ func (s *server) setupValidator() *validator.Validate {
 	}, func(ut ut.Translator, fe validator.FieldError) string {
 		t, _ := ut.T("eth_addr", fe.Field())
 		return t
-	})
+	}) // Убрать потом все равно не сильно помогает
 
 	return validate
 }

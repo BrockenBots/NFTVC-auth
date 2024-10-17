@@ -18,8 +18,8 @@ type MiddlewareManager struct {
 	jwtManager jwt.JwtManager
 }
 
-func NewMiddlewareManager(log logger.Logger, cfg *config.Config) *MiddlewareManager {
-	return &MiddlewareManager{log: log, cfg: cfg}
+func NewMiddlewareManager(log logger.Logger, cfg *config.Config, jwtManager jwt.JwtManager) *MiddlewareManager {
+	return &MiddlewareManager{log: log, cfg: cfg, jwtManager: jwtManager}
 }
 
 func (m *MiddlewareManager) CORS() echo.MiddlewareFunc {
@@ -44,12 +44,26 @@ func (m *MiddlewareManager) AuthMiddleware(next echo.HandlerFunc) echo.HandlerFu
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing or invalid token"})
 		}
 
-		sub := claims["sub"].(string)
-		deviceId := claims["device_id"].(string)
-		revoked := m.jwtManager.IsRevokedToken(context.Background(), sub, deviceId, accessToken)
-		if revoked {
+		sub, ok := claims["sub"].(string)
+		if !ok {
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Token is invalid"})
 		}
+		deviceId, ok := claims["device_id"].(string)
+		if !ok {
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Token is invalid"})
+		}
+		tokenType, ok := claims["token_type"].(string)
+		if !ok || tokenType != "access" {
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Token is invalid"})
+		}
+
+		revoked := m.jwtManager.IsRevokedToken(context.Background(), sub, deviceId, accessToken)
+		if revoked {
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Token in blacklist"})
+		}
+
+		c.Set("claims", claims)
+		c.Set("token", accessToken)
 
 		return next(c)
 	}

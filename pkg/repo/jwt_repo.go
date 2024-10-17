@@ -51,6 +51,7 @@ func (j *JwtRepo) RevokeTokens(ctx context.Context, accountId string, deviceId s
 	_, err := col.DeleteOne(ctx, bson.M{"accountId": accountId, "deviceId": deviceId})
 	if err != nil {
 		if strings.Contains(err.Error(), "no documents") {
+			j.log.Debugf("Not found a token for delete")
 			return err
 		}
 
@@ -85,9 +86,13 @@ func (j *JwtRepo) addToBlacklist(ctx context.Context, accountId, deviceId string
 	return nil
 }
 
-func (j *JwtRepo) DeleteRefreshToken(ctx context.Context, jti string) error {
-	_, err := j.getTokensCollection().DeleteOne(ctx, bson.M{"_id": jti})
-	return err
+func (j *JwtRepo) DeleteRefreshToken(ctx context.Context, accountId string, deviceId string) error {
+	_, err := j.getTokensCollection().DeleteOne(ctx, bson.M{"accountId": accountId, "deviceId": deviceId})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (j *JwtRepo) GetAccessToken(ctx context.Context, accountId string, deviceId string) (string, error) {

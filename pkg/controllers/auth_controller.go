@@ -18,6 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofrs/uuid"
+	jwt5 "github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 )
 
@@ -54,6 +55,10 @@ func (a *AuthController) SignInWithWallet(ctx echo.Context) error {
 
 	accountUuid, _ := uuid.NewV7()
 	accountId := accountUuid.String()
+	acc, _ := a.accountRepo.GetByWalletAddress(context.Background(), req.WalletPub)
+	if acc != nil {
+		accountId = acc.Id
+	}
 
 	nonce, err := a.nonceManager.GenerateNonce(req.WalletPub)
 	if err != nil {
@@ -105,11 +110,15 @@ func (a *AuthController) VerifySignature(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
 	}
 
-	accessToken, refreshToken, err := a.jwtManager.GenerateTokens(context.Background(), account.Id, account.WalletPub, account.Role)
+	deviceUuid, _ := uuid.NewV7()
+	deviceId := deviceUuid.String()
+	accessToken, refreshToken, err := a.jwtManager.GenerateTokens(context.Background(), account.Id, deviceId, account.WalletPub, account.Role)
 	if err != nil {
 		a.log.Debugf("(GenerateTokens) Failed to generate tokens: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
 	}
+
+	// a.jwtManager.RevokeTokens(ctx, account.Id, )
 
 	return ctx.JSON(http.StatusOK, map[string]string{
 		"access_token":  accessToken,
@@ -178,15 +187,28 @@ func (a *AuthController) RefreshTokens(ctx echo.Context) error {
 func (a *AuthController) SignOut(ctx echo.Context) error {
 	var req requests.SignOutRequest
 	if err := a.decodeRequest(ctx, &req); err != nil {
-		return err
+		a.log.Debugf("Failed to validate SignOutRequest: %v", err)
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Validation error: %v", err)})
 	}
 
-	return nil
+	accountClaims := (ctx.Get("claims")).(jwt5.MapClaims)
+	token := ctx.Get("token").(string)
+
+	accountId := accountClaims["sub"].(string)
+	deviceId := accountClaims["device_id"].(string)
+
+	err := a.jwtManager.RevokeTokens(context.Background(), accountId, deviceId, token)
+	if err != nil {
+		a.log.Debugf("(SignOut) error by revoking tokens: %v")
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "Error by revoking tokens"})
+	}
+
+	return ctx.JSON(http.StatusOK, map[string]string{})
 }
 
 func (a *AuthController) decodeRequest(ctx echo.Context, i interface{}) error {
 	if err := ctx.Bind(i); err != nil {
-		return fmt.Errorf("Invalid request")
+		return fmt.Errorf("invalid request")
 	}
 
 	if err := a.validate.Struct(i); err != nil {

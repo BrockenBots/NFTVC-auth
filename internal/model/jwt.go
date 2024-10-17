@@ -13,6 +13,7 @@ type AccountClaims struct {
 	DeviceId  string `json:"device_id"`
 	Iss       string `json:"iss"`
 	Role      string `json:"role"`
+	TokenType string `json:"token_type"`
 	jwt.RegisteredClaims
 }
 

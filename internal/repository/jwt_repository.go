@@ -10,5 +10,5 @@ type JwtRepository interface {
 	SaveRefreshToken(ctx context.Context, token *model.Token) error
 	RevokeTokens(ctx context.Context, accountId string, deviceId string, acceptedToken string) error
 	IsRevokedToken(ctx context.Context, accountId string, deviceId string, accessToken string) bool
-	DeleteRefreshToken(ctx context.Context, jti string) error
+	DeleteRefreshToken(ctx context.Context, accountId string, deviceId string) error
 }

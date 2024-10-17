@@ -19,11 +19,11 @@ import (
 )
 
 type JwtManager interface {
-	GenerateTokens(ctx context.Context, accountID string, walletPub string, role string) (string, string, error)
+	GenerateTokens(ctx context.Context, accountID string, deviceId string, walletPub string, role string) (string, string, error)
 	VerifyToken(context context.Context, accessToken string) (jwt.MapClaims, error)
 	RefreshToken(ctx context.Context, refreshToken string) (newAccessToken string, newRefreshToken string, err error)
 	IsRevokedToken(ctx context.Context, accountId string, deviceId string, accessToken string) bool
-	RevokeToken(subj string) error
+	RevokeTokens(ctx context.Context, accountId string, deviceId string, token string) error
 }
 
 type JwtConfig struct {
@@ -53,9 +53,7 @@ func NewJwtManager(log logger.Logger, cfg *config.Config, jwtRepo repository.Jwt
 	}
 }
 
-func (j *jwtManager) GenerateTokens(ctx context.Context, accountID string, walletPub string, role string) (accessToken, refreshToken string, err error) {
-	deviceUuid, _ := uuid.NewV7()
-	deviceId := deviceUuid.String()
+func (j *jwtManager) GenerateTokens(ctx context.Context, accountID string, deviceId string, walletPub string, role string) (accessToken, refreshToken string, err error) {
 	accessToken, err = j.generateAccessToken(ctx, accountID, walletPub, deviceId, role)
 	if err != nil {
 		return "", "", err
@@ -80,6 +78,7 @@ func (j *jwtManager) generateAccessToken(ctx context.Context, accountId, walletP
 		DeviceId:  deviceId,
 		Iss:       "auth.service",
 		Role:      role,
+		TokenType: "access",
 	}
 
 	tokenValue, err := j.generateToken(accountClaims)
@@ -107,6 +106,7 @@ func (j *jwtManager) generateRefreshToken(ctx context.Context, accountId, wallet
 		DeviceId:  deviceId,
 		Iss:       "auth.service",
 		Role:      role,
+		TokenType: "refresh",
 	}
 
 	tokenValue, err := j.generateToken(accountClaims)
@@ -178,7 +178,11 @@ func (j *jwtManager) RefreshToken(ctx context.Context, refreshToken string) (new
 		return "", "", err
 	}
 
-	jti := refreshTokenClaims["jti"].(string)
+	tokenType, ok := refreshTokenClaims["token_type"].(string)
+	if !ok || tokenType != "refresh" {
+		return "", "", fmt.Errorf("token is invalid")
+	}
+
 	sub := refreshTokenClaims["sub"].(string)
 	deviceId := refreshTokenClaims["device_id"].(string)
 	walletPub := refreshTokenClaims["wallet_pub"].(string)
@@ -189,7 +193,7 @@ func (j *jwtManager) RefreshToken(ctx context.Context, refreshToken string) (new
 		return "", "", err
 	}
 
-	if err := j.jwtRepo.DeleteRefreshToken(ctx, jti); err != nil {
+	if err := j.jwtRepo.DeleteRefreshToken(ctx, sub, deviceId); err != nil {
 		return "", "", err
 	}
 
@@ -201,9 +205,8 @@ func (j *jwtManager) RefreshToken(ctx context.Context, refreshToken string) (new
 	return newAccessToken, newRefreshToken, nil
 }
 
-func (j *jwtManager) RevokeToken(subj string) error {
-
-	return fmt.Errorf("not impl")
+func (j *jwtManager) RevokeTokens(ctx context.Context, accountId string, deviceId string, token string) error {
+	return j.jwtRepo.RevokeTokens(ctx, accountId, deviceId, token)
 }
 
 func (j *jwtManager) getPublicKey() (*rsa.PublicKey, error) {
