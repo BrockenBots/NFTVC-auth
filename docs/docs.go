@@ -16,6 +16,52 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/auth/refresh-tokens": {
+            "post": {
+                "description": "Обновление access и refresh токенов с использованием валидного refresh токена",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Обновление Access и Refresh токенов",
+                "parameters": [
+                    {
+                        "description": "RefreshTokens Request",
+                        "name": "refreshTokens",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.RefreshTokensRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Новые access и refresh токены",
+                        "schema": {
+                            "$ref": "#/definitions/response.RefreshTokensResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный refresh токен или ошибка валидации",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/auth/sign-in": {
             "post": {
                 "description": "Авторизация пользователя с использованием его Ethereum кошелька",
@@ -110,6 +156,17 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "requests.RefreshTokensRequest": {
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
         "requests.SignInWithWalletRequest": {
             "type": "object",
             "required": [
@@ -138,14 +195,35 @@ const docTemplate = `{
         },
         "response.ErrorResponse": {
             "type": "object",
+            "required": [
+                "error"
+            ],
             "properties": {
                 "error": {
                     "type": "string"
                 }
             }
         },
+        "response.RefreshTokensResponse": {
+            "type": "object",
+            "required": [
+                "access_token",
+                "refresh_token"
+            ],
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
         "response.SignInWithWalletResponse": {
             "type": "object",
+            "required": [
+                "nonce"
+            ],
             "properties": {
                 "nonce": {
                     "type": "string"
@@ -154,6 +232,10 @@ const docTemplate = `{
         },
         "response.VerifySignatureResponse": {
             "type": "object",
+            "required": [
+                "access_token",
+                "refresh_token"
+            ],
             "properties": {
                 "access_token": {
                     "type": "string"

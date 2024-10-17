@@ -1,12 +1,30 @@
 logger: 
   level: debug
   devMode: true
+  
 http: 
   port: :8081
-postgres:
-  connectionString: "postgres://user:password@postgres:5432"
-  db: nftvc
+
+# postgres:
+#   connectionString: "postgres://user:password@localhost:5432"
+#   db: nftvc
+
 redis: 
   uri: "redis:6379"
+
+mongo:
+  uri: "mongodb://user:password@mongodb:27017"
+  db: auth
+  connectTimeout: 10s
+
 nonce:
   exp: 900s
+
+mongoCollections:
+  accounts: accounts
+  refreshTokens: refreshTokens
+
+accessTokenExp: 3600s
+refreshTokenExp: 86400s
+publicKeyPath: "certs/jwtRSA256-public.pem"
+privateKeyPath: "certs/jwtRSA256-private.pem"

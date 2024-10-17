@@ -17,6 +17,7 @@ WORKDIR /app
 
 COPY --from=builder /app/main .
 COPY --from=builder /app/pkg/config ./pkg/config
+COPY --from=builder /app/certs ./certs/
 COPY --from=builder /app .env
 
 EXPOSE ${APP_PORT}
