@@ -10,7 +10,7 @@ http:
 #   db: nftvc
 
 redis: 
-  uri: "locahost:6379"
+  uri: "localhost:6379"
 
 mongo:
   uri: "mongodb://user:password@localhost:27017"

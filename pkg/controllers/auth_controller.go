@@ -13,8 +13,6 @@ import (
 	"nftvc-auth/pkg/requests"
 	"strings"
 
-	// _ "nftvc-auth/pkg/response"
-
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -48,11 +46,10 @@ func NewAuthController(log logger.Logger, cfg *config.Config, accountRepo reposi
 // @Failure 500 {object} response.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/auth/sign-in [post]
 func (a *AuthController) SignInWithWallet(ctx echo.Context) error {
-	// a.log.Debugf("(SignInWithWallet)")
 	var req requests.SignInWithWalletRequest
 	if err := a.decodeRequest(ctx, &req); err != nil {
 		a.log.Debugf("Failed to decode request SignInWithWallet: %v", err)
-		return err
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Validation error: %v", err)})
 	}
 
 	accountUuid, _ := uuid.NewV7()
@@ -88,7 +85,7 @@ func (a *AuthController) VerifySignature(ctx echo.Context) error {
 	var req requests.VerifySignatureRequest
 	if err := a.decodeRequest(ctx, &req); err != nil {
 		a.log.Debugf("Failed to decode request VerifySignatureRequest: %v", err)
-		return err
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Validation error: %v", err)})
 	}
 
 	nonce, err := a.nonceManager.GetNonce(req.WalletPub)
@@ -162,7 +159,8 @@ func (a *AuthController) verifySig(from, sigHex string, msg []byte) bool {
 func (a *AuthController) RefreshTokens(ctx echo.Context) error {
 	var req requests.RefreshTokensRequest
 	if err := a.decodeRequest(ctx, &req); err != nil {
-		return err
+		a.log.Debugf("Failed to validate request RefreshTokens: %v", err)
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Validation error: %v", err)})
 	}
 
 	accessToken, refreshToken, err := a.jwtManager.RefreshToken(context.Background(), req.RefreshToken)
@@ -188,12 +186,11 @@ func (a *AuthController) SignOut(ctx echo.Context) error {
 
 func (a *AuthController) decodeRequest(ctx echo.Context, i interface{}) error {
 	if err := ctx.Bind(i); err != nil {
-		return ctx.JSON(http.StatusBadGateway, map[string]string{"error": "Invalid request"})
+		return fmt.Errorf("Invalid request")
 	}
 
 	if err := a.validate.Struct(i); err != nil {
-		validationErrors := err.(validator.ValidationErrors)
-		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Validation error: %v", validationErrors)})
+		return err.(validator.ValidationErrors)
 	}
 
 	return nil
