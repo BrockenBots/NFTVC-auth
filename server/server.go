@@ -4,9 +4,11 @@ import (
 	"context"
 	"nftvc-auth/pkg/config"
 	"nftvc-auth/pkg/controllers"
+	"nftvc-auth/pkg/jwt"
 	"nftvc-auth/pkg/logger"
+	"nftvc-auth/pkg/middlewares"
+	"nftvc-auth/pkg/mongodb"
 	"nftvc-auth/pkg/nonce"
-	"nftvc-auth/pkg/postgres"
 	r "nftvc-auth/pkg/redis"
 	"nftvc-auth/pkg/repo"
 	"os"
@@ -20,6 +22,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	en_translations "github.com/go-playground/validator/v10/translations/en"
 	echo "github.com/labstack/echo/v4"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type server struct {
@@ -27,13 +30,16 @@ type server struct {
 	cfg            *config.Config
 	echo           *echo.Echo
 	authController *controllers.AuthController
+	mongoClient    *mongo.Client
+	middleware     middlewares.MiddlewareManager
 }
 
 func NewServer(log logger.Logger, cfg *config.Config) *server {
 	return &server{
-		log:  log,
-		cfg:  cfg,
-		echo: echo.New(),
+		log:        log,
+		cfg:        cfg,
+		echo:       echo.New(),
+		middleware: *middlewares.NewMiddlewareManager(log, cfg),
 	}
 }
 
@@ -41,13 +47,19 @@ func (s *server) Run() error {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
-	postgresConnector := postgres.NewPostgres(s.log, s.cfg.Postgres)
-	conn, err := postgresConnector.NewPostgresConn(ctx)
+	// postgresConnector := postgres.NewPostgres(s.log, s.cfg.Postgres)
+	// conn, err := postgresConnector.NewPostgresConn(ctx)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// s.InitPostgresTable(conn)
+	mongo, err := mongodb.NewMongoDbConn(ctx, s.cfg.Mongo)
 	if err != nil {
 		return err
 	}
-
-	s.InitPostgresTable(conn)
+	s.mongoClient = mongo
+	s.initMongoDBCollections(ctx)
 
 	redisConnector := r.NewRedisConnector(s.log, s.cfg.Redis)
 	redisClient, err := redisConnector.NewRedisConn(ctx)
@@ -55,13 +67,14 @@ func (s *server) Run() error {
 		return err
 	}
 
-	accountRepo := repo.NewPostgresAccountRepo(s.log, conn)
+	accountRepo := repo.NewMongoAccountRepo(s.log, s.cfg, mongo)
 	nonceRepo := repo.NewNonceRedisRepo(s.log, redisClient)
+	jwtRepo := repo.NewJwtRepo(s.log, s.cfg, redisClient, mongo)
+	jwtManager := jwt.NewJwtManager(s.log, s.cfg, jwtRepo)
 	nonceManager := nonce.NewNonceManager(s.log, s.cfg.Nonce, nonceRepo)
-
 	validate := s.setupValidator()
 
-	s.authController = controllers.NewAuthController(s.log, s.cfg, accountRepo, nonceManager, validate)
+	s.authController = controllers.NewAuthController(s.log, s.cfg, accountRepo, nonceManager, validate, jwtManager)
 
 	go func() {
 		if err := s.runHttpServer(); err != nil {

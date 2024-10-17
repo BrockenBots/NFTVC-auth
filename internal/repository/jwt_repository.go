@@ -1,11 +1,14 @@
 package repository
 
-import "nftvc-auth/internal/model"
+import (
+	"context"
+	"nftvc-auth/internal/model"
+)
 
 type JwtRepository interface {
-	SaveAccessToken(token model.Token) error
-	SaveRefreshToken(token model.Token) error
-	RevokeTokens(accountId string, deviceId string) error
-	ExistTokenInBlacklist(token string) bool
-	IsActiveAccessToken(token string) bool
+	SaveAccessToken(ctx context.Context, token *model.Token) error
+	SaveRefreshToken(ctx context.Context, token *model.Token) error
+	RevokeTokens(ctx context.Context, accountId string, deviceId string, acceptedToken string) error
+	IsRevokedToken(ctx context.Context, accountId string, deviceId string, accessToken string) bool
+	DeleteRefreshToken(ctx context.Context, jti string) error
 }

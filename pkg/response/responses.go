@@ -9,6 +9,11 @@ type VerifySignatureResponse struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
+type RefreshTokensResponse struct {
+	AccessToken  string `json:"access_token" validate:"required"`
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
 type ErrorResponse struct {
 	Error string `json:"error" validate:"required"`
 }

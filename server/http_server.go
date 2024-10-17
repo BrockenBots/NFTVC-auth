@@ -3,20 +3,11 @@ package server
 import (
 	_ "nftvc-auth/docs"
 
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-
 	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
 func (s *server) runHttpServer() error {
-	corsConfig := middleware.CORSConfig{
-		AllowOrigins: []string{"*"}, // Пока так
-		AllowMethods: []string{echo.GET, echo.POST, echo.OPTIONS},
-		AllowHeaders: []string{"Content-Type", "Authorization"},
-	}
-
-	s.echo.Use(middleware.CORSWithConfig(corsConfig))
+	s.echo.Use(s.middleware.CORS())
 
 	s.mapRoutes()
 
@@ -26,6 +17,7 @@ func (s *server) runHttpServer() error {
 func (s *server) mapRoutes() {
 	s.echo.POST("api/auth/sign-in", s.authController.SignInWithWallet)
 	s.echo.POST("api/auth/verify-signature", s.authController.VerifySignature)
+	s.echo.POST("api/auth/refresh-tokens", s.authController.RefreshTokens)
 	s.echo.POST("api/auth/sign-out", s.authController.SignOut)
 
 	s.echo.GET("/swagger/*", echoSwagger.WrapHandler)

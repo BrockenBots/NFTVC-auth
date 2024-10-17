@@ -9,12 +9,12 @@ import (
 )
 
 type Config struct {
-	URI            string
-	Db             string
-	ConnectTimeout time.Duration
+	URI            string        `mapstructure:"uri" validate:"required"`
+	Db             string        `mapstructure:"db" validate:"required"`
+	ConnectTimeout time.Duration `mapstructure:"connectTimeout" validate:"required"`
 }
 
-func NewMongoDbConn(ctx context.Context, cfg Config) (*mongo.Client, error) {
+func NewMongoDbConn(ctx context.Context, cfg *Config) (*mongo.Client, error) {
 	client, err := mongo.Connect(context.Background(),
 		options.Client().ApplyURI(cfg.URI).
 			SetConnectTimeout(cfg.ConnectTimeout))

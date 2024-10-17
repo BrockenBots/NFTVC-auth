@@ -1,26 +1,32 @@
 package model
 
-import "time"
+import (
+	"github.com/golang-jwt/jwt/v5"
+)
 
 type AccountClaims struct {
-	jti           string
-	tokenType     TokenType
-	iat           uint64
-	exp           uint64
-	sub           string
-	walletAddress string
-	deviceId      string
-	iss           string
-	role          string
+	Jti       string `json:"jti"`
+	Iat       int64  `json:"iat"`
+	Exp       int64  `json:"exp"`
+	Sub       string `json:"sub"`
+	WalletPub string `json:"wallet_pub"`
+	DeviceId  string `json:"device_id"`
+	Iss       string `json:"iss"`
+	Role      string `json:"role"`
+	jwt.RegisteredClaims
 }
 
 type Token struct {
-	Id        string
-	DeviceId  string
-	AccountId string
-	Token     string
-	TokenType TokenType
-	Exp       time.Duration
+	Id        string `bson:"_id, omitempty"`
+	DeviceId  string `bson:"deviceId"`
+	AccountId string `bson:"accountId"`
+	Token     string `bson:"token"`
+	ExpiresAt int64  `bson:"expiresAt"`
+	// TokenType string        `bson:"tokenType"`
+}
+
+func NewToken(id, deviceId, accountId, token string, expiresAt int64) *Token {
+	return &Token{Id: id, DeviceId: deviceId, AccountId: accountId, Token: token, ExpiresAt: expiresAt}
 }
 
 type TokenType string

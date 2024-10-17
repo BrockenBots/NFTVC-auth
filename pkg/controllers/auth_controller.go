@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"nftvc-auth/internal/model"
@@ -10,6 +11,7 @@ import (
 	"nftvc-auth/pkg/logger"
 	"nftvc-auth/pkg/nonce"
 	"nftvc-auth/pkg/requests"
+	"strings"
 
 	// _ "nftvc-auth/pkg/response"
 
@@ -30,8 +32,8 @@ type AuthController struct {
 	jwtManager   jwt.JwtManager
 }
 
-func NewAuthController(log logger.Logger, cfg *config.Config, accountRepo repository.AccountRepository, nonceManager nonce.NonceManager, validator *validator.Validate) *AuthController {
-	return &AuthController{log: log, cfg: cfg, accountRepo: accountRepo, nonceManager: nonceManager, validate: validator}
+func NewAuthController(log logger.Logger, cfg *config.Config, accountRepo repository.AccountRepository, nonceManager nonce.NonceManager, validator *validator.Validate, jwtManager jwt.JwtManager) *AuthController {
+	return &AuthController{log: log, cfg: cfg, accountRepo: accountRepo, nonceManager: nonceManager, validate: validator, jwtManager: jwtManager}
 }
 
 // SignInWithWallet godoc
@@ -46,9 +48,10 @@ func NewAuthController(log logger.Logger, cfg *config.Config, accountRepo reposi
 // @Failure 500 {object} response.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/auth/sign-in [post]
 func (a *AuthController) SignInWithWallet(ctx echo.Context) error {
-	a.log.Debugf("(SignInWithWallet)")
+	// a.log.Debugf("(SignInWithWallet)")
 	var req requests.SignInWithWalletRequest
 	if err := a.decodeRequest(ctx, &req); err != nil {
+		a.log.Debugf("Failed to decode request SignInWithWallet: %v", err)
 		return err
 	}
 
@@ -62,7 +65,7 @@ func (a *AuthController) SignInWithWallet(ctx echo.Context) error {
 	}
 
 	account := model.NewAccount(accountId, req.WalletPub, "user")
-	if err := a.accountRepo.Add(account); err != nil {
+	if err := a.accountRepo.Add(context.Background(), account); err != nil {
 		a.log.Error("(SignInWithWallet) [AccountRepository.Add] err: ", err)
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
 	}
@@ -84,11 +87,13 @@ func (a *AuthController) SignInWithWallet(ctx echo.Context) error {
 func (a *AuthController) VerifySignature(ctx echo.Context) error {
 	var req requests.VerifySignatureRequest
 	if err := a.decodeRequest(ctx, &req); err != nil {
+		a.log.Debugf("Failed to decode request VerifySignatureRequest: %v", err)
 		return err
 	}
 
 	nonce, err := a.nonceManager.GetNonce(req.WalletPub)
 	if err != nil {
+		a.log.Debugf("(GetNonce) error: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
 	}
 
@@ -97,14 +102,15 @@ func (a *AuthController) VerifySignature(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "signature and public key are not suitable"})
 	}
 
-	account, err := a.accountRepo.GetByWalletAddress(req.WalletPub)
+	account, err := a.accountRepo.GetByWalletAddress(context.Background(), req.WalletPub)
 	if err != nil {
+		a.log.Debugf("(GetByWalletAddress) error: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
 	}
 
-	deviceId, _ := uuid.NewV7()
-	accessToken, refreshToken, err := a.jwtManager.GenerateTokens(account.Id, deviceId.String(), account.Role)
+	accessToken, refreshToken, err := a.jwtManager.GenerateTokens(context.Background(), account.Id, account.WalletPub, account.Role)
 	if err != nil {
+		a.log.Debugf("(GenerateTokens) Failed to generate tokens: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
 	}
 
@@ -123,26 +129,52 @@ func (a *AuthController) verifySig(from, sigHex string, msg []byte) bool {
 
 	msg = accounts.TextHash(msg)
 
+	if len(sig) != 65 {
+		a.log.Debugf("Invalid signature length: %d", len(sig))
+		return false
+	}
+
 	if sig[crypto.RecoveryIDOffset] == 27 || sig[crypto.RecoveryIDOffset] == 28 {
 		sig[crypto.RecoveryIDOffset] -= 27
 	}
 
 	recovered, err := crypto.SigToPub(msg, sig)
 	if err != nil {
+		a.log.Debugf("Failed to recover public key from signature: %v", err)
 		return false
 	}
 
 	recoveredAddr := crypto.PubkeyToAddress(*recovered)
-	return from == recoveredAddr.Hex()
+	return strings.EqualFold(from, recoveredAddr.Hex())
 }
 
+// RefreshTokens godoc
+// @Summary Обновление Access и Refresh токенов
+// @Description Обновление access и refresh токенов с использованием валидного refresh токена
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Param   refreshTokens body requests.RefreshTokensRequest true "RefreshTokens Request"
+// @Success 200 {object} response.RefreshTokensResponse "Новые access и refresh токены"
+// @Failure 400 {object} response.ErrorResponse "Неверный refresh токен или ошибка валидации"
+// @Failure 500 {object} response.ErrorResponse "Внутренняя ошибка сервера"
+// @Router /api/auth/refresh-tokens [post]
 func (a *AuthController) RefreshTokens(ctx echo.Context) error {
 	var req requests.RefreshTokensRequest
 	if err := a.decodeRequest(ctx, &req); err != nil {
 		return err
 	}
 
-	return fmt.Errorf("not impl")
+	accessToken, refreshToken, err := a.jwtManager.RefreshToken(context.Background(), req.RefreshToken)
+	if err != nil {
+		a.log.Debugf("(RefreshTokens) error: %v", err)
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	return ctx.JSON(http.StatusOK, map[string]string{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	})
 }
 
 func (a *AuthController) SignOut(ctx echo.Context) error {

@@ -1,4 +1,11 @@
 definitions:
+  requests.RefreshTokensRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
   requests.SignInWithWalletRequest:
     properties:
       wallet_pub:
@@ -23,6 +30,16 @@ definitions:
     required:
     - error
     type: object
+  response.RefreshTokensResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    required:
+    - access_token
+    - refresh_token
+    type: object
   response.SignInWithWalletResponse:
     properties:
       nonce:
@@ -43,6 +60,37 @@ definitions:
 info:
   contact: {}
 paths:
+  /api/auth/refresh-tokens:
+    post:
+      consumes:
+      - application/json
+      description: Обновление access и refresh токенов с использованием валидного
+        refresh токена
+      parameters:
+      - description: RefreshTokens Request
+        in: body
+        name: refreshTokens
+        required: true
+        schema:
+          $ref: '#/definitions/requests.RefreshTokensRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Новые access и refresh токены
+          schema:
+            $ref: '#/definitions/response.RefreshTokensResponse'
+        "400":
+          description: Неверный refresh токен или ошибка валидации
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Обновление Access и Refresh токенов
+      tags:
+      - auth
   /api/auth/sign-in:
     post:
       consumes:

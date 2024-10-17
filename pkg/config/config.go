@@ -3,9 +3,10 @@ package config
 import (
 	"fmt"
 	"nftvc-auth/pkg/logger"
+	"nftvc-auth/pkg/mongodb"
 	"nftvc-auth/pkg/nonce"
-	"nftvc-auth/pkg/postgres"
 	redisConnector "nftvc-auth/pkg/redis"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -13,10 +14,15 @@ import (
 type Config struct {
 	Http             Http                        `mapstructure:"http" validate:"required"`
 	Logger           *logger.Config              `mapstructure:"logger" validate:"required"`
-	Postgres         *postgres.PostgresConfig    `mapstructure:"postgres" validate:"required"`
 	Redis            *redisConnector.RedisConfig `mapstructure:"redis" validate:"required"`
 	Nonce            *nonce.NonceConfig          `mapstructure:"nonce" validate:"required"`
+	Mongo            *mongodb.Config             `mapstructure:"mongo" validate:"required"`
 	MongoCollections *MongoCollections           `mapstructure:"mongoCollections" validate:"required"`
+	AccessTokenExp   time.Duration               `mapstructure:"accessTokenExp" validate:"required"`
+	RefreshTokenExp  time.Duration               `mapstructure:"refreshTokenExp" validate:"required"`
+	PublicKeyPath    string                      `mapstructure:"publicKeyPath" validate:"required"`
+	PrivateKeyPath   string                      `mapstructure:"privateKeyPath" validate:"required"`
+	// Postgres         *postgres.PostgresConfig    `mapstructure:"postgres" validate:"required"`
 }
 
 type MongoCollections struct {
