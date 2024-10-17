@@ -184,17 +184,26 @@ func (j *jwtManager) RefreshToken(ctx context.Context, refreshToken string) (new
 		return "", "", fmt.Errorf("token is invalid")
 	}
 
+	if exist := j.jwtRepo.CheckExistRefresh(ctx, refreshToken); !exist {
+		return "", "", fmt.Errorf("token is invalid")
+	}
+
 	sub := refreshTokenClaims["sub"].(string)
 	deviceId := refreshTokenClaims["device_id"].(string)
 	walletPub := refreshTokenClaims["wallet_pub"].(string)
 	role := refreshTokenClaims["role"].(string)
 
-	newAccessToken, err = j.generateAccessToken(ctx, sub, deviceId, walletPub, role)
+	activeToken, err := j.jwtRepo.GetAccessToken(ctx, sub, deviceId)
 	if err != nil {
 		return "", "", err
 	}
 
-	if err := j.jwtRepo.DeleteRefreshToken(ctx, sub, deviceId); err != nil {
+	if err := j.RevokeTokens(ctx, sub, deviceId, activeToken); err != nil {
+		return "", "", err
+	}
+
+	newAccessToken, err = j.generateAccessToken(ctx, sub, walletPub, deviceId, role)
+	if err != nil {
 		return "", "", err
 	}
 

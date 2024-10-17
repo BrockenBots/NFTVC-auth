@@ -47,6 +47,7 @@ func NewAuthController(log logger.Logger, cfg *config.Config, accountRepo reposi
 // @Failure 500 {object} response.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/auth/sign-in [post]
 func (a *AuthController) SignInWithWallet(ctx echo.Context) error {
+	a.log.Infof("(AuthController.SignInWithWallet)")
 	var req requests.SignInWithWalletRequest
 	if err := a.decodeRequest(ctx, &req); err != nil {
 		a.log.Debugf("Failed to decode request SignInWithWallet: %v", err)
@@ -60,7 +61,7 @@ func (a *AuthController) SignInWithWallet(ctx echo.Context) error {
 	}
 
 	acc, _ := a.accountRepo.GetByWalletAddress(context.Background(), req.WalletPub)
-	if acc == nil {
+	if acc != nil {
 		return ctx.JSON(http.StatusOK, map[string]string{"nonce": nonce})
 	}
 
@@ -88,6 +89,7 @@ func (a *AuthController) SignInWithWallet(ctx echo.Context) error {
 // @Failure 500 {object} response.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/auth/verify-signature [post]
 func (a *AuthController) VerifySignature(ctx echo.Context) error {
+	a.log.Infof("(AuthController.VerifySignature)")
 	var req requests.VerifySignatureRequest
 	if err := a.decodeRequest(ctx, &req); err != nil {
 		a.log.Debugf("Failed to decode request VerifySignatureRequest: %v", err)
@@ -167,6 +169,7 @@ func (a *AuthController) verifySig(from, sigHex string, msg []byte) bool {
 // @Failure 500 {object} response.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/auth/refresh-tokens [post]
 func (a *AuthController) RefreshTokens(ctx echo.Context) error {
+	a.log.Infof("(AuthController.RefreshTokens)")
 	var req requests.RefreshTokensRequest
 	if err := a.decodeRequest(ctx, &req); err != nil {
 		a.log.Debugf("Failed to validate request RefreshTokens: %v", err)

@@ -18,6 +18,7 @@ WalletPub is the public address of the user's wallet
 Answer:
 
 nonce — Generated UUID for signature verification.
+
 2. Verify Signature
 POST /api/auth/verify-signature
 
@@ -27,9 +28,9 @@ Parameters:
 WalletPub is the public address of the user's wallet
 Signature — A signature generated based on nonce
 Answer:
+    access_token — JWT access token
+    refresh_token — JWT refresh token
 
-access_token — JWT access token
-refresh_token — JWT refresh token
 3. Refresh Tokens
 POST /api/auth/refresh-tokens
 
@@ -41,6 +42,7 @@ Answer:
 
 access_token — Updated JWT access token
 refresh_token — Updated JWT update token
+
 4. Sign Out
 POST /api/auth/sign-out
 

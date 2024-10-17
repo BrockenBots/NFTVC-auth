@@ -28,7 +28,9 @@ func NewJwtRepo(log logger.Logger, cfg *config.Config, redisClient *redis.Client
 }
 
 func (j *JwtRepo) SaveAccessToken(ctx context.Context, token *model.Token) error {
-	if err := j.redisClient.Set(ctx, fmt.Sprintf("active_token:%s:%s", token.AccountId, token.DeviceId), token.Token, j.cfg.AccessTokenExp).Err(); err != nil {
+	key := fmt.Sprintf("active_token:%s:%s", token.AccountId, token.DeviceId)
+	// j.log.Debugf("(SaveAccessToken) KEY: %s", key)
+	if err := j.redisClient.Set(ctx, key, token.Token, j.cfg.AccessTokenExp).Err(); err != nil {
 		j.log.Debugf("(SaveTokens) Failed to save: %v", err)
 		return fmt.Errorf("failed to save access token")
 	}
@@ -48,7 +50,7 @@ func (j *JwtRepo) SaveRefreshToken(ctx context.Context, token *model.Token) erro
 func (j *JwtRepo) RevokeTokens(ctx context.Context, accountId string, deviceId string, acceptedToken string) error {
 	col := j.getTokensCollection()
 
-	re, err := col.DeleteOne(ctx, bson.M{"accountId": accountId, "deviceId": deviceId})
+	_, err := col.DeleteOne(ctx, bson.M{"accountId": accountId, "deviceId": deviceId})
 	if err != nil {
 		if strings.Contains(err.Error(), "no documents") {
 			j.log.Debugf("Not found a token for delete")
@@ -58,8 +60,15 @@ func (j *JwtRepo) RevokeTokens(ctx context.Context, accountId string, deviceId s
 		return err
 	}
 
-	j.log.Debugf("RES : %v", re.DeletedCount)
+	if err := j.AddAccessTokenToBlacklist(ctx, accountId, deviceId, acceptedToken); err != nil {
+		j.log.Debugf("Failed to add access to blacklist")
+		return err
+	}
 
+	return nil
+}
+
+func (j *JwtRepo) AddAccessTokenToBlacklist(ctx context.Context, accountId, deviceId, acceptedToken string) error {
 	activeToken, err := j.GetAccessToken(ctx, accountId, deviceId)
 	if err != nil {
 		if err == redis.Nil {
@@ -70,16 +79,29 @@ func (j *JwtRepo) RevokeTokens(ctx context.Context, accountId string, deviceId s
 		}
 	}
 
+	res := j.redisClient.Del(ctx, fmt.Sprintf("active_token:%s:%s", accountId, deviceId))
+	if res.Err() != nil {
+		return err
+	}
+
 	err = j.addToBlacklist(ctx, accountId, deviceId, activeToken)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
 func (j *JwtRepo) addToBlacklist(ctx context.Context, accountId, deviceId string, token string) error {
 	return j.redisClient.Set(ctx, fmt.Sprintf("blacklist:%s:%s:%s", accountId, deviceId, token), token, j.cfg.AccessTokenExp).Err()
+}
+
+func (j *JwtRepo) DeleteAccessToken(ctx context.Context, key string) error {
+	// j.log.Debugf("(DeleteAccessToken) KEY: %s", key)
+	res := j.redisClient.Del(ctx, key)
+	if res.Err() != nil {
+		return res.Err()
+	}
+	return nil
 }
 
 func (j *JwtRepo) DeleteRefreshToken(ctx context.Context, accountId string, deviceId string) error {
@@ -92,7 +114,9 @@ func (j *JwtRepo) DeleteRefreshToken(ctx context.Context, accountId string, devi
 }
 
 func (j *JwtRepo) GetAccessToken(ctx context.Context, accountId string, deviceId string) (string, error) {
-	res := j.redisClient.Get(ctx, fmt.Sprintf("active_token:%s:%s", accountId, deviceId))
+	key := fmt.Sprintf("active_token:%s:%s", accountId, deviceId)
+	// j.log.Debugf("(GetAccessToken) key: %s", key)
+	res := j.redisClient.Get(ctx, key)
 	if err := res.Err(); err != nil {
 		j.log.Debugf("Failed to find accessToken: %v", err)
 		return "", err
@@ -103,6 +127,15 @@ func (j *JwtRepo) GetAccessToken(ctx context.Context, accountId string, deviceId
 
 func (j *JwtRepo) IsRevokedToken(ctx context.Context, accountId string, deviceId string, token string) bool {
 	res := j.redisClient.Get(ctx, fmt.Sprintf("blacklist:%s:%s:%s", accountId, deviceId, token))
+	if err := res.Err(); err != nil {
+		return false
+	}
+
+	return true
+}
+
+func (j *JwtRepo) CheckExistRefresh(ctx context.Context, refreshToken string) bool {
+	res := j.getTokensCollection().FindOne(ctx, bson.M{"token": refreshToken})
 	if err := res.Err(); err != nil {
 		return false
 	}
