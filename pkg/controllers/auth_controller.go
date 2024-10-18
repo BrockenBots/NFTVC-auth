@@ -60,20 +60,6 @@ func (a *AuthController) SignInWithWallet(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
 	}
 
-	acc, _ := a.accountRepo.GetByWalletAddress(context.Background(), req.WalletPub)
-	if acc != nil {
-		return ctx.JSON(http.StatusOK, map[string]string{"nonce": nonce})
-	}
-
-	accountUuid, _ := uuid.NewV7()
-	accountId := accountUuid.String()
-
-	account := model.NewAccount(accountId, req.WalletPub, "user")
-	if err := a.accountRepo.Add(context.Background(), account); err != nil {
-		a.log.Error("(SignInWithWallet) [AccountRepository.Add] err: ", err)
-		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
-	}
-
 	return ctx.JSON(http.StatusOK, map[string]string{"nonce": nonce})
 }
 
@@ -98,19 +84,28 @@ func (a *AuthController) VerifySignature(ctx echo.Context) error {
 
 	nonce, err := a.nonceManager.GetNonce(req.WalletPub)
 	if err != nil {
-		a.log.Debugf("(GetNonce) error: %v", err)
+		a.log.Debugf("(AuthController.VerifySignature.GetNonce) error: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
 	}
 
-	res := a.verifySig(nonce.WalletAddress, req.Signature, []byte(nonce.Nonce))
-	if !res {
+	account, _ := a.accountRepo.GetByWalletAddress(context.Background(), req.WalletPub)
+	if account == nil {
+		accountUuid, _ := uuid.NewV7()
+		accountId := accountUuid.String()
+
+		account := model.NewAccount(accountId, req.WalletPub, "user")
+		if err := a.accountRepo.Add(context.Background(), account); err != nil {
+			a.log.Error("(SignInWithWallet) [AccountRepository.Add] err: ", err)
+			return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
+		}
+	}
+
+	if ok := a.verifySig(nonce.WalletAddress, req.Signature, []byte(nonce.Nonce)); !ok {
 		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "signature and public key are not suitable"})
 	}
 
-	account, err := a.accountRepo.GetByWalletAddress(context.Background(), req.WalletPub)
-	if err != nil {
-		a.log.Debugf("(GetByWalletAddress) error: %v", err)
-		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
+	if err := a.nonceManager.DeleteNonce(nonce.WalletAddress); err != nil {
+		a.log.Debugf("Failed to delete nonce: %v", err)
 	}
 
 	deviceUuid, _ := uuid.NewV7()
@@ -120,8 +115,6 @@ func (a *AuthController) VerifySignature(ctx echo.Context) error {
 		a.log.Debugf("(GenerateTokens) Failed to generate tokens: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
 	}
-
-	// a.jwtManager.RevokeTokens(ctx, account.Id, )
 
 	return ctx.JSON(http.StatusOK, map[string]string{
 		"access_token":  accessToken,
@@ -188,6 +181,17 @@ func (a *AuthController) RefreshTokens(ctx echo.Context) error {
 	})
 }
 
+// RefreshTokens godoc
+// @Summary Обновление Access и Refresh токенов
+// @Description Обновление access и refresh токенов с использованием валидного refresh токена
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Param   refreshTokens body requests.RefreshTokensRequest true "RefreshTokens Request"
+// @Success 200 {object} response.RefreshTokensResponse "Новые access и refresh токены"
+// @Failure 400 {object} response.ErrorResponse "Неверный refresh токен или ошибка валидации"
+// @Failure 500 {object} response.ErrorResponse "Внутренняя ошибка сервера"
+// @Router /api/auth/refresh-tokens [post]
 func (a *AuthController) SignOut(ctx echo.Context) error {
 	var req requests.SignOutRequest
 	if err := a.decodeRequest(ctx, &req); err != nil {
