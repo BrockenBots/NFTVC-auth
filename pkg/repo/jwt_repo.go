@@ -143,6 +143,16 @@ func (j *JwtRepo) CheckExistRefresh(ctx context.Context, refreshToken string) bo
 	return true
 }
 
+func (j *JwtRepo) GetRefreshToken(ctx context.Context, accountId string, deviceId string) (string, error) {
+	var t model.Token
+	err := j.getTokensCollection().FindOne(ctx, bson.M{"accountId": accountId, "deviceId": deviceId}).Decode(&t)
+	if err != nil {
+		return "", err
+	}
+
+	return t.Token, nil
+}
+
 func (j *JwtRepo) getTokensCollection() *mongo.Collection {
 	return j.mongoClient.Database(j.cfg.Mongo.Db).Collection(j.cfg.MongoCollections.RefreshTokens)
 }

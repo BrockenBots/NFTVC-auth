@@ -15,6 +15,7 @@ var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 type NonceManager interface {
 	GenerateNonce(walletAddress string) (string, error)
 	GetNonce(walletAddress string) (*model.Nonce, error)
+	DeleteNonce(walletAddress string) error
 }
 
 type NonceConfig struct {
@@ -54,4 +55,8 @@ func (n *nonceManager) GetNonce(walletAddress string) (*model.Nonce, error) {
 	}
 
 	return nonce, nil
+}
+
+func (n *nonceManager) DeleteNonce(walletAddress string) error {
+	return n.nonceRepo.DeleteNonce(walletAddress)
 }

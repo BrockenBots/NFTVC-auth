@@ -11,11 +11,7 @@ import (
 	"nftvc-auth/pkg/logger"
 	"nftvc-auth/pkg/nonce"
 	"nftvc-auth/pkg/requests"
-	"strings"
 
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofrs/uuid"
 	jwt5 "github.com/golang-jwt/jwt/v5"
@@ -60,20 +56,6 @@ func (a *AuthController) SignInWithWallet(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
 	}
 
-	acc, _ := a.accountRepo.GetByWalletAddress(context.Background(), req.WalletPub)
-	if acc != nil {
-		return ctx.JSON(http.StatusOK, map[string]string{"nonce": nonce})
-	}
-
-	accountUuid, _ := uuid.NewV7()
-	accountId := accountUuid.String()
-
-	account := model.NewAccount(accountId, req.WalletPub, "user")
-	if err := a.accountRepo.Add(context.Background(), account); err != nil {
-		a.log.Error("(SignInWithWallet) [AccountRepository.Add] err: ", err)
-		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
-	}
-
 	return ctx.JSON(http.StatusOK, map[string]string{"nonce": nonce})
 }
 
@@ -98,19 +80,29 @@ func (a *AuthController) VerifySignature(ctx echo.Context) error {
 
 	nonce, err := a.nonceManager.GetNonce(req.WalletPub)
 	if err != nil {
-		a.log.Debugf("(GetNonce) error: %v", err)
+		a.log.Debugf("(AuthController.VerifySignature.GetNonce) error: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
 	}
 
-	res := a.verifySig(nonce.WalletAddress, req.Signature, []byte(nonce.Nonce))
-	if !res {
+	var account *model.Account
+	account, _ = a.accountRepo.GetByWalletAddress(context.Background(), req.WalletPub)
+	if account == nil {
+		accountUuid, _ := uuid.NewV7()
+		accountId := accountUuid.String()
+
+		account = model.NewAccount(accountId, req.WalletPub, "user")
+		if err := a.accountRepo.Add(context.Background(), account); err != nil {
+			a.log.Error("(SignInWithWallet) [AccountRepository.Add] err: ", err)
+			return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
+		}
+	}
+
+	if ok := a.verifySig(nonce.WalletAddress, req.Signature, []byte(nonce.Nonce)); !ok {
 		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "signature and public key are not suitable"})
 	}
 
-	account, err := a.accountRepo.GetByWalletAddress(context.Background(), req.WalletPub)
-	if err != nil {
-		a.log.Debugf("(GetByWalletAddress) error: %v", err)
-		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
+	if err := a.nonceManager.DeleteNonce(nonce.WalletAddress); err != nil {
+		a.log.Debugf("Failed to delete nonce: %v", err)
 	}
 
 	deviceUuid, _ := uuid.NewV7()
@@ -121,40 +113,10 @@ func (a *AuthController) VerifySignature(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Internal server error: %v", err)})
 	}
 
-	// a.jwtManager.RevokeTokens(ctx, account.Id, )
-
 	return ctx.JSON(http.StatusOK, map[string]string{
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
 	})
-}
-
-func (a *AuthController) verifySig(from, sigHex string, msg []byte) bool {
-	sig, err := hexutil.Decode(sigHex)
-	if err != nil {
-		a.log.Debugf("Failed to decode signature: %v", err)
-		return false
-	}
-
-	msg = accounts.TextHash(msg)
-
-	if len(sig) != 65 {
-		a.log.Debugf("Invalid signature length: %d", len(sig))
-		return false
-	}
-
-	if sig[crypto.RecoveryIDOffset] == 27 || sig[crypto.RecoveryIDOffset] == 28 {
-		sig[crypto.RecoveryIDOffset] -= 27
-	}
-
-	recovered, err := crypto.SigToPub(msg, sig)
-	if err != nil {
-		a.log.Debugf("Failed to recover public key from signature: %v", err)
-		return false
-	}
-
-	recoveredAddr := crypto.PubkeyToAddress(*recovered)
-	return strings.EqualFold(from, recoveredAddr.Hex())
 }
 
 // RefreshTokens godoc
@@ -188,6 +150,17 @@ func (a *AuthController) RefreshTokens(ctx echo.Context) error {
 	})
 }
 
+// RefreshTokens godoc
+// @Summary Обновление Access и Refresh токенов
+// @Description Обновление access и refresh токенов с использованием валидного refresh токена
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Param   refreshTokens body requests.SignOutRequest true "RefreshTokens Request"
+// @Success 200 {object} response.SignOutResponse "Пустой ответ при успешном выходе"
+// @Failure 400 {object} response.ErrorResponse "При неверных токенах доступа"
+// @Failure 500 {object} response.ErrorResponse "Внутренняя ошибка сервера"
+// @Router /api/auth/refresh-tokens [post]
 func (a *AuthController) SignOut(ctx echo.Context) error {
 	var req requests.SignOutRequest
 	if err := a.decodeRequest(ctx, &req); err != nil {
@@ -210,14 +183,55 @@ func (a *AuthController) SignOut(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, map[string]string{})
 }
 
-func (a *AuthController) decodeRequest(ctx echo.Context, i interface{}) error {
-	if err := ctx.Bind(i); err != nil {
-		return fmt.Errorf("invalid request")
+func (a *AuthController) VerifyToken(ctx echo.Context) error {
+	a.log.Debugf("VerifyToken")
+	var req requests.VerifyTokenRequest
+	if err := a.decodeRequest(ctx, &req); err != nil {
+		a.log.Debugf("Failed to validate VerifyToken: %v", err)
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Validation error: %v", err)})
 	}
 
-	if err := a.validate.Struct(i); err != nil {
-		return err.(validator.ValidationErrors)
+	mapClaims, err := a.jwtManager.VerifyToken(context.Background(), req.AccessToken)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Failed to verify token: %v", err)})
 	}
 
-	return nil
+	sub := mapClaims["sub"].(string)
+
+	return ctx.JSON(http.StatusOK, map[string]string{
+		"account_id": sub,
+	})
+}
+
+func (a *AuthController) ChangeRole(ctx echo.Context) error {
+	var req requests.ChangeRoleRequest
+	if err := a.decodeRequest(ctx, &req); err != nil {
+		a.log.Debugf("Failed to validate ChangeRole: %v", err)
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Validation error: %v", err)})
+	}
+
+	accountClaims := (ctx.Get("claims")).(jwt5.MapClaims)
+	accountId := accountClaims["sub"].(string)
+	deviceId := accountClaims["device_id"].(string)
+
+	account := &model.Account{Id: accountId, Role: req.Role}
+	if err := a.accountRepo.Update(context.Background(), account); err != nil {
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Error by update role: %v", err)})
+	}
+
+	oldRefreshToken, err := a.jwtManager.GetRefreshToken(context.Background(), accountId, deviceId)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Error by get token: %v", err)})
+	}
+
+	accessToken, refreshToken, err := a.jwtManager.RefreshToken(context.Background(), oldRefreshToken)
+	if err != nil {
+		a.log.Debugf("(RefreshTokens) error: %v", err)
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	return ctx.JSON(http.StatusOK, map[string]string{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	})
 }

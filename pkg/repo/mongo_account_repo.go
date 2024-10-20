@@ -12,7 +12,6 @@ import (
 )
 
 type MongoAccountRepo struct {
-	// repository.AccountRepository
 	log logger.Logger
 	cfg *config.Config
 	db  *mongo.Client

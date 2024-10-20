@@ -13,4 +13,5 @@ type JwtRepository interface {
 	DeleteRefreshToken(ctx context.Context, accountId string, deviceId string) error
 	GetAccessToken(ctx context.Context, accountId string, deviceId string) (string, error)
 	CheckExistRefresh(ctx context.Context, refreshToken string) bool
+	GetRefreshToken(ctx context.Context, accountId string, deviceId string) (string, error)
 }

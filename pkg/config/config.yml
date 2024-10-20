@@ -10,10 +10,10 @@ http:
 #   db: nftvc
 
 redis: 
-  uri: "redis:6379"
+  uri: "localhost:6379"
 
 mongo:
-  uri: "mongodb://user:password@mongodb:27017"
+  uri: "mongodb://user:password@localhost:27017"
   db: auth
   connectTimeout: 10s
 

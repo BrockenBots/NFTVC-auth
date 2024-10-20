@@ -14,6 +14,12 @@ type VerifySignatureRequest struct {
 }
 
 type SignOutRequest struct {
-	// RefreshToken string `json:"refresh_token" validate:"required"`
-	// AccessToken  string `json:"access_token" validate:"required"` // Потом будет в Authorization
+}
+
+type VerifyTokenRequest struct {
+	AccessToken string `json:"access_token" validate:"required"`
+}
+
+type ChangeRoleRequest struct {
+	Role string `json:"role" validate:"required"`
 }

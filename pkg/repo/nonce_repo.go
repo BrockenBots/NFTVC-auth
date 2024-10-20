@@ -44,3 +44,11 @@ func (n *NonceRedisRepo) GetNonce(walletAddress string) (*model.Nonce, error) {
 
 	return nonce, nil
 }
+
+func (n *NonceRedisRepo) DeleteNonce(walletAddress string) error {
+	res := n.db.Del(context.Background(), walletAddress)
+	if err := res.Err(); err != nil {
+		return err
+	}
+	return nil
+}
