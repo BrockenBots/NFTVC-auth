@@ -15,3 +15,11 @@ type VerifySignatureRequest struct {
 
 type SignOutRequest struct {
 }
+
+type VerifyTokenRequest struct {
+	AccessToken string `json:"access_token" validate:"required"`
+}
+
+type ChangeRoleRequest struct {
+	Role string `json:"role" validate:"required"`
+}

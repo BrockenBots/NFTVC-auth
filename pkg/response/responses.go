@@ -14,6 +14,9 @@ type RefreshTokensResponse struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
+type SignOutResponse struct {
+}
+
 type ErrorResponse struct {
 	Error string `json:"error" validate:"required"`
 }

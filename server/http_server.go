@@ -2,7 +2,6 @@ package server
 
 import (
 	_ "nftvc-auth/docs"
-	//
 
 	echoSwagger "github.com/swaggo/echo-swagger"
 )
@@ -22,6 +21,9 @@ func (s *server) mapRoutes() {
 
 	authGroup := s.echo.Group("api/auth", s.middleware.AuthMiddleware)
 	authGroup.POST("/sign-out", s.authController.SignOut)
+	authGroup.POST("/change-role", s.authController.ChangeRole)
+
+	s.echo.POST("api/auth/verify-token", s.authController.VerifyToken)
 
 	s.echo.GET("/swagger/*", echoSwagger.WrapHandler)
 }

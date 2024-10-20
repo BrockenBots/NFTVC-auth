@@ -25,6 +25,7 @@ type JwtManager interface {
 	IsRevokedToken(ctx context.Context, accountId string, deviceId string, accessToken string) bool
 	RevokeTokens(ctx context.Context, accountId string, deviceId string, token string) error
 	ExistAccessToken(ctx context.Context, accountId string, deviceId string) bool
+	GetRefreshToken(ctx context.Context, accountId string, deviceId string) (string, error)
 }
 
 type JwtConfig struct {
@@ -266,4 +267,8 @@ func (j *jwtManager) ExistAccessToken(ctx context.Context, accountId string, dev
 	}
 
 	return token != ""
+}
+
+func (j *jwtManager) GetRefreshToken(ctx context.Context, accountId string, deviceId string) (string, error) {
+	return j.jwtRepo.GetRefreshToken(ctx, accountId, deviceId)
 }
