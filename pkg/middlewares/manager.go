@@ -24,7 +24,7 @@ func NewMiddlewareManager(log logger.Logger, cfg *config.Config, jwtManager jwt.
 
 func (m *MiddlewareManager) CORS() echo.MiddlewareFunc {
 	corsConfig := middleware.CORSConfig{
-		AllowOrigins: []string{"*"}, // Пока так
+		AllowOrigins: []string{"*"},
 		AllowMethods: []string{echo.GET, echo.POST, echo.OPTIONS},
 		AllowHeaders: []string{"Content-Type", "Authorization"},
 	}
@@ -34,6 +34,7 @@ func (m *MiddlewareManager) CORS() echo.MiddlewareFunc {
 
 func (m *MiddlewareManager) AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		m.log.Debugf("Received request in auth middleware: %v", c.Request())
 		accessToken := strings.TrimPrefix(c.Request().Header.Get("Authorization"), "Bearer ")
 		if accessToken == "" {
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing or invalid token"})

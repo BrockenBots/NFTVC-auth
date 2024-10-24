@@ -4,9 +4,6 @@ WORKDIR /app
 
 COPY . .
 
-ARG APP_PORT
-ENV APP_PORT=8081
-
 RUN go mod tidy
 
 RUN go build -o main ./main.go
