@@ -5,7 +5,7 @@ WORKDIR /app
 COPY . .
 
 ARG APP_PORT
-ENV APP_PORT=${APP_PORT}
+ENV APP_PORT=8081
 
 RUN go mod tidy
 
@@ -20,6 +20,6 @@ COPY --from=builder /app/pkg/config ./pkg/config
 COPY --from=builder /app/certs ./certs/
 COPY --from=builder /app .env
 
-EXPOSE ${APP_PORT}
+EXPOSE 8081
 
 CMD ["./main"]

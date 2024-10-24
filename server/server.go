@@ -17,10 +17,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/go-playground/locales/en"
-	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
-	en_translations "github.com/go-playground/validator/v10/translations/en"
 	echo "github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -105,20 +102,9 @@ func (s *server) setupValidator() *validator.Validate {
 
 	validate.RegisterValidation("eth_addr", func(fl validator.FieldLevel) bool {
 		addr := fl.Field().String()
+		s.log.Debugf("Address is %s res: %v", addr, common.IsHexAddress(addr))
 		return common.IsHexAddress(addr)
 	})
-
-	en := en.New()
-	uni := ut.New(en, en)
-
-	trans, _ := uni.GetTranslator("en")
-	en_translations.RegisterDefaultTranslations(validate, trans)
-	validate.RegisterTranslation("eth_addr", trans, func(ut ut.Translator) error {
-		return ut.Add("eth_addr", "{0} must be a valid Ethereum address", true)
-	}, func(ut ut.Translator, fe validator.FieldError) string {
-		t, _ := ut.T("eth_addr", fe.Field())
-		return t
-	}) // Убрать потом все равно не сильно помогает
 
 	return validate
 }
